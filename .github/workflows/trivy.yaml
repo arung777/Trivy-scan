@@ -28,12 +28,16 @@ jobs:
           echo "Found images:"
           cat images.txt
 
-      - name: Run Trivy scan on all referenced images (SARIF for Security tab)
+      - name: Run Trivy scan on all referenced images with validation
         run: |
           set -e
           while read image; do
-            echo "Scanning image $image"
-            trivy image --severity HIGH,CRITICAL --ignore-unfixed --format sarif --output "trivy-report-$image.sarif" "$image"
+            if [[ -n "$image" ]]; then
+              echo "Scanning image $image"
+              trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "$image"
+            else
+              echo "Skipping empty image name"
+            fi
           done < images.txt
 
       - name: Upload Trivy scan results to GitHub Security tab
