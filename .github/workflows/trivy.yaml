@@ -4,9 +4,13 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'application/**'
   push:
     branches:
       - main
+    paths:
+      - 'application/**'
 
 jobs:
   trivy-scan:
