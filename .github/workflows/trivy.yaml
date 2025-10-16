@@ -27,7 +27,7 @@ jobs:
         id: extract-images
         run: |
           # Recursive find image references in YAML files, exclude empty/dot lines
-          grep -rho 'image:[ ]*[^ ]*' application/**/*.yaml | awk '{print $2}' | grep -vE '^\s*$|^\.$' | sort | uniq > images.txt
+          grep -rho 'image:[ ]*[^ ]*' applications/**/*.yaml | awk '{print $2}' | grep -vE '^\s*$|^\.$' | sort | uniq > images.txt
           echo "Images to scan:"
           cat images.txt
       
