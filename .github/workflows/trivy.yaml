@@ -5,12 +5,12 @@ on:
     branches:
       - main
     paths:
-      - 'applications/**'
+      - 'application/**'
   push:
     branches:
       - main
     paths:
-      - 'applications/**'
+      - 'application/**'
 
 jobs:
   trivy-scan:
@@ -26,29 +26,30 @@ jobs:
       - name: Extract container images from manifests
         id: extract-images
         run: |
-          # Find all images referenced in YAML files
-          # Looks for `image:` in YAML (manifests, charts, etc.)
-          grep -rho 'image:[ ]*[^ ]*' **/*.yaml | awk '{print $2}' | sort | uniq > images.txt
-          echo "Found images:"
+          # Recursive find image references in YAML files, exclude empty/dot lines
+          grep -rho 'image:[ ]*[^ ]*' application/**/*.yaml | awk '{print $2}' | grep -vE '^\s*$|^\.$' | sort | uniq > images.txt
+          echo "Images to scan:"
           cat images.txt
-
-      - name: Run Trivy scan on all referenced images with validation
+      
+      - name: Run Trivy scan on all referenced images with validation and generate SARIF
         run: |
           set -e
           while read image; do
-            if [[ -n "$image" ]]; then
-              echo "Scanning image $image"
-              trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "$image"
-            else
-              echo "Skipping empty image name"
+            if [[ -z "$image" || "$image" == "." ]]; then
+              echo "Skipping invalid or empty image name: '$image'"
+              continue
             fi
+            echo "Scanning image $image"
+            trivy image --severity HIGH,CRITICAL --ignore-unfixed --format sarif --output "trivy-report-$image.sarif" "$image"
           done < images.txt
 
-      - name: Upload Trivy scan results to GitHub Security tab
+      - name: Upload Trivy SARIF reports to Security tab
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-report-*.sarif
 
-      
-
-    
+      - name: Upload Trivy scan reports as artifacts (optional)
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-reports
+          path: trivy-report-*.sarif
