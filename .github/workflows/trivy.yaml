@@ -1,0 +1,46 @@
+name: Trivy Image Scan
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  trivy-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Trivy
+        uses: aquasecurity/trivy-action@master
+
+      - name: Extract container images from manifests
+        id: extract-images
+        run: |
+          # Find all images referenced in YAML files
+          # Looks for `image:` in YAML (manifests, charts, etc.)
+          grep -rho 'image:[ ]*[^ ]*' **/*.yaml | awk '{print $2}' | sort | uniq > images.txt
+          echo "Found images:"
+          cat images.txt
+
+      - name: Run Trivy scan on all referenced images (SARIF for Security tab)
+        run: |
+          set -e
+          while read image; do
+            echo "Scanning image $image"
+            trivy image --severity HIGH,CRITICAL --ignore-unfixed --format sarif --output "trivy-report-$image.sarif" "$image"
+          done < images.txt
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-report-*.sarif
+
+      
+
+    
