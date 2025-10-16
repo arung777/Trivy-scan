@@ -5,12 +5,12 @@ on:
     branches:
       - main
     paths:
-      - 'application/**'
+      - 'applications/**'
   push:
     branches:
       - main
     paths:
-      - 'application/**'
+      - 'applications/**'
 
 jobs:
   trivy-scan:
